@@ -50,3 +50,15 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Text editing and text processing artifacts
+\#*\#
+.\#*
+[._]*.sw[a-p]
+[._]sw[a-p]
+*.bak
+*.orig
+*.rej
+*.tmp
+*~
+
