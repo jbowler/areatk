@@ -1,0 +1,3 @@
+# AREATK LIBRARY FUNCTION DEFINITIONS {#functions}
+
+## CORE FUNCTIONS {#functions-code}
