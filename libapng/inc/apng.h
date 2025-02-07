@@ -31,25 +31,74 @@ AREATK. If not, see <https://www.gnu.org/licenses/>. */
 #define APNG_BLEND_OP_SOURCE 0 /* Replace current pixel values */
 #define APNG_BLEND_OP_OVER   1 /* Compose current values, including alpha */
 
+/* Some APIs return sequence numbers which are PNG four byte unsigned integers.
+ * The following values are invalid so can be used to indicate errors or other
+ * conditions:
+ */
+#define APNG_SQN_STATIC_IMAGE  0xFFFFFFFFU
+   /* This is the base PNG image; the one defined by the IDAT chunks.  It may
+    * also be the fcTL[0] image if that fcTL occurs before the IDAT chunks.
+    *
+    * This is not an error; it exists to allow the higher level APNG APIs to
+    * identify the static image independently of fcTL[0] when required.
+    */
+
+#define APNG_SQN_MISSING       0x80000000U
+   /* The given sequence number does not exist in the stream.  * In some
+    * circumstances (such as the "core" API) this may simply be because the
+    * chunk with the sequence number has not yet been encountered.
+    */
+
+#define APNG_SQN_INCORRECT     0x80000001U
+   /* The given sequence number is present but does **not** correspond to the
+    * requested chunk type.  In other words a request was made for an fcTL but
+    * an fdAT was found or vice versa.
+    */
+
+#define APNG_SQN_CHUNK_INVALID 0x80000002U
+   /* The sequence number is present in the stream but the chunk containing it
+    * is invalid.  Only returned by the higher level APIs; the lower level APIs
+    * simply discard invalid chunks so "MISSING" will be returned.
+    *
+    * The higher level APIs are consistent with the lower levels: an invalid
+    * chunk is ignored so may be followed by a valid one with the same sequence
+    * number.  The higher level APIs only return this error if that chunk has
+    * not yet been encountered.
+    */
+
+#define APNG_SQN_VALID(sqn) ((sqn) < 0x80000000U)
+   /* The sequence number is a valid sequence number in an APNG animation. */
+
+#define APNG_SQN_IS_ERROR(sqn) ((sqn)+1U > 0x80000000U)
+   /* The sequence number does not correspond to **either** a valid APNG
+    * sequence number **or** to the static image (APNG_SQN_STATIC_IMAGE).
+    *
+    * The error may be temporary.
+    */
+
+#define APNG_SQN_APP_BASE      0xC0000000U
+   /* This is provided for use by the application to extend the error or return
+    * codes in a way which will not require code changes if values are added to
+    * the libapng list.
+    *
+    * Do not expect libapng APIs to return a limited set of error codes; new
+    * codes may be added in the future to represent specific errors more
+    * accurately.
+    */
+
 /* CORE READ API {#core-read} */
 /* {#apng-read-enable} */
-int APNGAPI apng_read_enable(png_structrp png_ptr);
-   /* Sets up 'unknown' handling for the APNG chunks and returns true if this
-    * succeeds.
-    *
-    * Returns false if this build of libpng does not support the unknown chunk
-    * handling mechanism.  Standard builds of libpng do have the required
-    * support.
+bool APNGAPI apng_read_enable(png_structrp png_ptr);
+   /* Sets up 'unknown' handling for APNG and related chunks and returns true if
+    * this succeeds.
     *
     * The function adds the three APNG chunks to the list of unknown chunks
     * using the libpng function png_set_keep_unknown_chunks and marks them as
     * always to be saved (PNG_HANDLE_CHUNK_ALWAYS).  The default handling of
     * unknown chunks (by default discard) is not changed.
     *
-    * Call this after setting up application unknown handling or do the same
-    * thing in application unknown handling (in which case this need not be
-    * called).  png_get_acTL checks for the correct handling and will call
-    * png_error if it is not correct.
+    * This must be done for the apng_get_ and apng_set_ core APIs to work.  It
+    * is not required for the higher level APIs.
     */
 
 /* {#apng-get-acTL} */
@@ -97,8 +146,9 @@ bool APNGAPI apng_get_fdAT(png_const_structp png_ptr, png_infop info_ptr,
 /* {#apng-find-after} */
 png_uint_32 APNGAPI apng_find_after(png_const_structp png_ptr,
       png_infop info_ptr, png_uint_32 after, int find_last, unsigned what);
-   /* Returns a sequence number greater than 'after' or
-    * APNG_INVALID_SEQUENCE_NUMBER if no chunk matching the conditions is found.
+   /* Returns a sequence number greater than 'after' or APNG_SQN_MISSING
+    * if no chunk matching the conditions is found.
+    *
     * The conditions depend on 'what' which takes the following values:
     *
     *    PNG_FIND_fcTL:

@@ -62,14 +62,22 @@ apng_get_fcTL(png_const_structp png_ptr, png_infop info_ptr, png_uint_32 sqn,
              blend_op <= APNG_BLEND_OP_OVER)
          {
             /* Valid: */
-            *width_ptr = width;
-            *height_ptr = height;
-            *x_offset_ptr = x_offset;
-            *y_offset_ptr = y_offset;
-            *delay_num_ptr = delay_num;
-            *delay_den_ptr = (delay_den > 0) ? delay_den : 100;
-            *dispose_op_ptr = dispose_op;
-            *blend_op_ptr = blend_op;
+            if (width_ptr != NULL)
+               *width_ptr = width;
+            if (height_ptr != NULL)
+               *height_ptr = height;
+            if (x_offset_ptr != NULL)
+               *x_offset_ptr = x_offset;
+            if (y_offset_ptr != NULL)
+               *y_offset_ptr = y_offset;
+            if (delay_num_ptr != NULL)
+               *delay_num_ptr = delay_num;
+            if (delay_den_ptr != NULL)
+               *delay_den_ptr = (delay_den > 0) ? delay_den : 100;
+            if (dispose_op_ptr != NULL)
+               *dispose_op_ptr = dispose_op;
+            if (blend_op_ptr != NULL)
+               *blend_op_ptr = blend_op;
 
             return true;
          }

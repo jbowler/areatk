@@ -65,15 +65,38 @@ get_fcTL(png_const_structrp png_ptr, png_inforp info_ptr, png_uint_32 sqn,
             &fcTL->dispose_op, &fcTL->blend_op);
 }
 
+static const char *dispose_of(int dispose)
+{
+   switch (dispose)
+   {
+      case APNG_DISPOSE_OP_NONE:       return "none";
+      case APNG_DISPOSE_OP_BACKGROUND: return "clear";
+      case APNG_DISPOSE_OP_PREVIOUS:   return "previous";
+      default:                         return "INVALID";
+   }
+}
+
+static const char *blend_of(int dispose)
+{
+   switch (dispose)
+   {
+      case APNG_BLEND_OP_SOURCE: return "replace";
+      case APNG_BLEND_OP_OVER:   return "Porter-Duff(over)";
+      default:                   return "INVALID";
+   }
+}
+
 static void
 print_fcTL(const struct fcTL *fcTL, png_uint_32 frame_count)
 {
    printf(
-      "INFO: fcTL[%u(%u)]: (%ux%u) +(%u,%u) DISPOSE(%u) BLEND(%u) DELAY %gs\n",
+      "INFO: fcTL[%u(%u)]: (%ux%u)+(%u,%u) DISPOSE(%s(%u)) BLEND(%s(%u)) DELAY %gs\n",
       frame_count, fcTL->sqn,
       fcTL->width, fcTL->height,
       fcTL->x_offset, fcTL->y_offset,
-      fcTL->dispose_op, fcTL->blend_op, (1.*fcTL->delay_num)/fcTL->delay_den);
+      dispose_of(fcTL->dispose_op), fcTL->dispose_op,
+      blend_of(fcTL->blend_op), fcTL->blend_op,
+      (1.*fcTL->delay_num)/fcTL->delay_den);
 }
 
 int main(void)
@@ -196,7 +219,8 @@ int main(void)
    }
 
    /* End of the loop: sqn is one beyond the last sequence number found */
-   printf( "INFO: APNG end fcTL+fdAT[%u chunks]: %u frame%s; last: %u\n",
-         sqn, frame_count, frame_count > 1 ? "s" : "", fcTL_sqn);
+   printf( "INFO: APNG end fcTL+fdAT[%u chunk%s]: %u frame%s; last: %u\n",
+         sqn, sqn > 1 ? "s" : "", frame_count, frame_count > 1 ? "s" : "",
+         fcTL_sqn);
    return 0;
 }

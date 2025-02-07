@@ -23,7 +23,7 @@ AREATK. If not, see <https://www.gnu.org/licenses/>. */
 /* png_set_keep_unknown_chunks takes a png_const_bytep, so: */
 static const png_byte chunk_list[] = APNG_CHUNK_LIST;
 
-int APNGAPI
+bool APNGAPI
 apng_read_enable(png_structrp png_ptr) {
    png_set_keep_unknown_chunks(png_ptr, PNG_HANDLE_CHUNK_ALWAYS,
          chunk_list, (sizeof chunk_list));

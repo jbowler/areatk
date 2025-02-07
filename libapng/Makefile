@@ -31,9 +31,13 @@ CFLAGS=-Wall -Wextra -Werror\
 
 CPPFLAGS=-DAPNGAPI=
 
-LIBAPNG_FILES=core/add_fcTL.o core/add_fdAT.o core/find_after.o core/get_acTL.o\
+CORE_FILES=core/add_fcTL.o core/add_fdAT.o core/find_after.o core/get_acTL.o\
 	core/get_fcTL.o core/get_fdAT.o core/read_enable.o core/search.o\
 	core/set_acTL.o
+
+ADVANCED_FILES=
+
+LIBAPNG_FILES=$(CORE_FILES) $(ADVANCED_FILES)
 
 clean::
 	$(RM) $(LIBAPNG_FILES)
@@ -52,4 +56,8 @@ test-core-read: test/core_read.o libapng.a
 test:: test-core-read
 
 clean::
-	$(RM) test-core-read
+	$(RM) test-core-read test/core_read.o
+
+$(LIBAPNG_FILES): inc/apng_private.h inc/apng.h
+
+test/core_read.o: inc/apng.h

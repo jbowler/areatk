@@ -24,7 +24,7 @@ apng_find_after(png_const_structp png_ptr, png_infop info_ptr,
 {
    png_unknown_chunkp chunks = NULL;
    const int num = png_get_unknown_chunks(png_ptr, info_ptr, &chunks);
-   png_uint_32 found = APNG_INVALID_SEQUENCE_NUMBER;
+   png_uint_32 found = APNG_SQN_MISSING;
 
    if (find_last)
    {
@@ -51,7 +51,7 @@ apng_find_after(png_const_structp png_ptr, png_infop info_ptr,
                {
                   if (find_last)
                   {
-                     if (found == APNG_INVALID_SEQUENCE_NUMBER || s > found)
+                     if (found == APNG_SQN_MISSING || s > found)
                         found = s;
                   }
 
@@ -69,7 +69,7 @@ apng_find_after(png_const_structp png_ptr, png_infop info_ptr,
                if (s > after) switch (find_last)
                {
                   default: /* I.e. '2' above */
-                     if (found == APNG_INVALID_SEQUENCE_NUMBER || s > found)
+                     if (found == APNG_SQN_MISSING || s > found)
                         found = s;
                      break;
 

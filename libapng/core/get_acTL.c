@@ -22,6 +22,15 @@ bool APNGAPI
 apng_get_acTL(png_const_structp png_ptr, png_infop info_ptr,
    png_uint_32p num_frames_ptr, png_uint_32p num_plays_ptr)
 {
+   static const png_byte acTL[] = APNG_acTL_str;
+   static const png_byte fcTL[] = APNG_fcTL_str;
+   static const png_byte fdAT[] = APNG_fdAT_str;
+
+   if (png_handle_as_unknown(png_ptr, acTL) < PNG_HANDLE_CHUNK_IF_SAFE ||
+       png_handle_as_unknown(png_ptr, fcTL) < PNG_HANDLE_CHUNK_IF_SAFE ||
+       png_handle_as_unknown(png_ptr, fdAT) < PNG_HANDLE_CHUNK_IF_SAFE)
+      png_error(png_ptr, "apng_get_acTL: missing APNG handling");
+
    png_unknown_chunkp chunks = NULL;
    const int num = png_get_unknown_chunks(png_ptr, info_ptr, &chunks);
    const int next = apng_search(num, chunks, 0, APNG_FIND_acTL);

@@ -41,8 +41,11 @@ apng_get_fdAT(png_const_structp png_ptr, png_infop info_ptr, png_uint_32 sqn,
       {
          /* The sequence number matched and the size matched, get the data:
           */
-         *data_len_ptr = chunks[next].size - 4U;
-         *data_ptr = chunks[next].data + 4U;
+         if (data_len_ptr != NULL)
+            *data_len_ptr = chunks[next].size - 4U;
+
+         if (data_ptr != NULL)
+            *data_ptr = chunks[next].data + 4U;
          return true;
       }
    }
