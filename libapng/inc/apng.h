@@ -130,7 +130,7 @@ bool APNGAPI apng_get_fcTL(png_const_structp png_ptr, png_infop info_ptr,
 
 /* {#apng-get-fdAT} */
 bool APNGAPI apng_get_fdAT(png_const_structp png_ptr, png_infop info_ptr,
-      png_uint_32 sqn, png_uint_32p data_len_ptr, png_const_bytep *data_ptr);
+      png_uint_32 sqn, png_uint_32p data_len_ptr, png_bytep *data_ptr);
    /* Returns true if a valid fdAT chunk with the given sequence number exists
     * in the info_struct pointed to by info_ptr and false otherwise.
     *

@@ -27,7 +27,9 @@ tools::
 CFLAGS=-Wall -Wextra -Werror\
        -Wundef -Wwrite-strings -Wpointer-arith -Wmissing-declarations\
        -Wstrict-prototypes -Wmissing-prototypes -Wno-implicit-fallthrough\
+        -Wcast-align -Wshadow\
        -g -O2 --std=c23 -pedantic $(CFLAGS_OVERRIDE)
+	# -Wconversion
 
 CPPFLAGS=-DAPNGAPI=
 
@@ -57,6 +59,14 @@ test:: test-core-read
 
 clean::
 	$(RM) test-core-read test/core_read.o
+
+test-core: test/core.o libapng.a
+	$(CC) $(CFLAGS) -o $@ $^ -lpng -lz
+
+test:: test-core
+
+clean::
+	$(RM) test-core test/core.o
 
 $(LIBAPNG_FILES): inc/apng_private.h inc/apng.h
 

@@ -47,7 +47,7 @@ apng_find_after(png_const_structp png_ptr, png_infop info_ptr,
             {
                const png_uint_32 s = APNG_U32_RGB(chunks[i].data);
 
-               if (s > after)
+               if (s < 0x80000000U && s > after)
                {
                   if (find_last)
                   {
@@ -66,7 +66,7 @@ apng_find_after(png_const_structp png_ptr, png_infop info_ptr,
             {
                const png_uint_32 s = APNG_U32_RGB(chunks[i].data);
 
-               if (s > after) switch (find_last)
+               if (s < 0x80000000U && s > after) switch (find_last)
                {
                   default: /* I.e. '2' above */
                      if (found == APNG_SQN_MISSING || s > found)

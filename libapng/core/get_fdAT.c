@@ -20,7 +20,7 @@ AREATK. If not, see <https://www.gnu.org/licenses/>. */
 
 bool APNGAPI
 apng_get_fdAT(png_const_structp png_ptr, png_infop info_ptr, png_uint_32 sqn,
-   png_uint_32p data_len_ptr, png_const_bytep *data_ptr)
+   png_uint_32p data_len_ptr, png_bytep *data_ptr)
 {
    png_unknown_chunkp chunks = NULL;
    const int num = png_get_unknown_chunks(png_ptr, info_ptr, &chunks);

@@ -27,5 +27,5 @@ bool APNGAPI
 apng_read_enable(png_structrp png_ptr) {
    png_set_keep_unknown_chunks(png_ptr, PNG_HANDLE_CHUNK_ALWAYS,
          chunk_list, (sizeof chunk_list));
-   return 1;
+   return true;
 }

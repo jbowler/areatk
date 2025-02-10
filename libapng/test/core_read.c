@@ -146,15 +146,17 @@ int main(void)
    /* (!) Call apng_get_acTL(png_ptr, pre_IDAT_info_ptr, ...); */
    png_uint_32 num_frames = 0, num_plays = 1;
 
-   if (!apng_get_acTL(png_ptr, pre_IDAT_info_ptr, &num_frames, &num_plays))
-   {
-      printf("INFO: no valid acTL chunk: this is not an APNG\n");
-      exit(0);
-   }
+   if (apng_get_acTL(png_ptr, pre_IDAT_info_ptr, &num_frames, &num_plays))
+      printf("INFO: this is an APNG with %u frame%s x %u loop%s\n",
+            num_frames, num_frames != 1 ? "s" : "",
+            num_plays, num_plays != 1 ? "s" : "");
 
-   /* Do you want to process such an APNG? */
-   printf("INFO: this is an APNG with %u frames x %u loops\n",
-         num_frames, num_plays);
+   else
+      printf("INFO: no valid acTL chunk: this is not an APNG\n");
+
+   /* This test code continues to look for fcTL and fdAT if acTL is not found,
+    * this is useful for detecting errors.
+    */
 
    /* (!) if so call apng_get_fcTL to see whether the IDAT needs to be retained
     * for a looping (num_plays != 1) APNG and to determine the first fdAT
@@ -207,7 +209,7 @@ int main(void)
 
       /* (!) **Frame loop** to read all the `fdAT` chunks in this frame */
       png_uint_32 num_bytes;
-      png_const_bytep frame_data;
+      png_bytep frame_data;
 
       while (apng_get_fdAT(png_ptr, post_IDAT_info_ptr, ++sqn,
                &num_bytes, &frame_data))

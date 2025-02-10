@@ -55,6 +55,8 @@ apng_get_acTL(png_const_structp png_ptr, png_infop info_ptr,
 
             return true;
          }
+
+         /* num_frames == 0, num_frames or num_plays invalid */
       }
    }
 
