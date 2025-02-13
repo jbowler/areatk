@@ -35,7 +35,7 @@ AREATK. If not, see <https://www.gnu.org/licenses/>. */
  * The following values are invalid so can be used to indicate errors or other
  * conditions:
  */
-#define APNG_SQN_STATIC_IMAGE  0xFFFFFFFFU
+#define APNG_SQN_STATIC_IMAGE    0xFFFFFFFFU
    /* This is the base PNG image; the one defined by the IDAT chunks.  It may
     * also be the fcTL[0] image if that fcTL occurs before the IDAT chunks.
     *
@@ -43,30 +43,30 @@ AREATK. If not, see <https://www.gnu.org/licenses/>. */
     * identify the static image independently of fcTL[0] when required.
     */
 
-#define APNG_SQN_MISSING       0x80000000U
-   /* The given sequence number does not exist in the stream.  * In some
+#define APNG_SQN_INVALID         0x80000000U
+   /* With an API that requires sequence numbers this means that the end of the
+    * valid sequence numbers (0 to 0x7FFFFFFF) has been reached.  However if a
+    * chunk with a given sequence number was not found the following is
+    * returned:
+    */
+
+#define APNG_SQN_MISSING         0x80000001U
+   /* The given sequence number does not exist in the stream.  In some
     * circumstances (such as the "core" API) this may simply be because the
     * chunk with the sequence number has not yet been encountered.
     */
 
-#define APNG_SQN_INCORRECT     0x80000001U
-   /* The given sequence number is present but does **not** correspond to the
-    * requested chunk type.  In other words a request was made for an fcTL but
-    * an fdAT was found or vice versa.
+#define APNG_SQN_EINVAL          0x80000002U
+   /* An invalid argument was passed to an API which returns a SQN (otherwise
+    * typically false is returned).
     */
 
-#define APNG_SQN_CHUNK_INVALID 0x80000002U
-   /* The sequence number is present in the stream but the chunk containing it
-    * is invalid.  Only returned by the higher level APIs; the lower level APIs
-    * simply discard invalid chunks so "MISSING" will be returned.
-    *
-    * The higher level APIs are consistent with the lower levels: an invalid
-    * chunk is ignored so may be followed by a valid one with the same sequence
-    * number.  The higher level APIs only return this error if that chunk has
-    * not yet been encountered.
+#define APNG_SQN_NO_DATA         0x80000003U
+   /* Absent or zero length fdAT or IDAT stream when reading or writing such a
+    * sequence.
     */
 
-#define APNG_SQN_VALID(sqn) ((sqn) < 0x80000000U)
+#define APNG_SQN_IS_VALID(sqn) ((sqn) < APNG_SQN_INVALID)
    /* The sequence number is a valid sequence number in an APNG animation. */
 
 #define APNG_SQN_IS_ERROR(sqn) ((sqn)+1U > 0x80000000U)
@@ -74,16 +74,6 @@ AREATK. If not, see <https://www.gnu.org/licenses/>. */
     * sequence number **or** to the static image (APNG_SQN_STATIC_IMAGE).
     *
     * The error may be temporary.
-    */
-
-#define APNG_SQN_APP_BASE      0xC0000000U
-   /* This is provided for use by the application to extend the error or return
-    * codes in a way which will not require code changes if values are added to
-    * the libapng list.
-    *
-    * Do not expect libapng APIs to return a limited set of error codes; new
-    * codes may be added in the future to represent specific errors more
-    * accurately.
     */
 
 /* CORE READ API {#core-read} */
@@ -143,7 +133,6 @@ bool APNGAPI apng_get_fdAT(png_const_structp png_ptr, png_infop info_ptr,
 #  define APNG_FIND_fcTL 0x02U
 #  define APNG_FIND_fdAT 0x04U
 
-/* {#apng-find-after} */
 png_uint_32 APNGAPI apng_find_after(png_const_structp png_ptr,
       png_infop info_ptr, png_uint_32 after, int find_last, unsigned what);
    /* Returns a sequence number greater than 'after' or APNG_SQN_MISSING
@@ -182,6 +171,65 @@ png_uint_32 APNGAPI apng_find_after(png_const_structp png_ptr,
     * the frame data (PNG_FIND_fdAT).  The combination of both allows any gaps
     * in the sequence numbers to be skipped without checking for every
     * intervening (absent) sequence number.
+    */
+
+/* CORE READ EXTENSIONS */
+/* {#apng-core-read-extensions} */
+/* The following functionality provides a somewhat simplified interface to the
+ * native libpng functionality to support extraction of individual frames (fcTL
+ * values) from an APNG.
+ */
+
+/* {#apng-write-IDAT} */
+bool APNGAPI apng_write_IDAT_from_IDAT(png_structp write_ptr,
+   png_infop info_ptr, png_alloc_size_t *total_bytes_ptr);
+   /* Writes the image data chunks from IDAT chunks saved as unknown in the
+    * given info_ptr using "write_ptr".  The latter must come from
+    * png_create_write_struct.  The png_info pointer will normally come from a
+    * read of an APNG.
+    *
+    * Returns false on an error, either;
+    *
+    *    + png_ptr or info_ptr are NULL, or;
+    *
+    *    + There were no IDAT chunks in the unknown chunks or the total size of
+    *      all such changes was zero.
+    *
+    * Returns true on success and sets *total_bytes_ptr to the total number of
+    * bytes in the IDAT sequence or to PNG_SIZE_MAX if this overflows.
+    * total_bytes_ptr may be NULL if this information is not required.
+    */
+
+png_uint_32 APNGAPI apng_write_IDAT_from_fdAT(png_structp write_ptr,
+   png_infop info_ptr, png_uint_32 after, png_alloc_size_t *total_bytes_ptr);
+   /* Writes the image data chunks from fdAT chunks stored as unnown in the
+    * given info_ptr using "write_ptr".  The latter must come from
+    * png_create_write_struct.  The png_info pointers will normally come from a
+    * read of an APNG.
+    *
+    *    after:      The sequence number immediately before the first fdAT to
+    *                be written.  Normally this will be the sequence number of
+    *                the fcTL of the corresponding frame.  The first fdAT
+    *                written is (after+1).
+    *
+    * Returns:
+    *
+    *    APNG_SQN_EINVAL:        Invalid arguments to the API (e.g. write_ptr or
+    *                            info_ptr NULL).
+    *
+    *    APNG_SQN_INVALID:       The sequence number wrapped while writing the
+    *                            IDAT chunks.  This does not mean that there was
+    *                            a failure, just that this is an APNG with the
+    *                            maximum number of fcTL and fdAT chunks.
+    *
+    *    APNG_SQN_VALID(return): The sequence number of the first chunk after
+    *                            the last fdAT written.
+    *
+    *    Anything else:          "after"; i.e. the "after" parameter was itself
+    *                            APNG_SQN_IS_ERROR(after).
+    *
+    * If total_bytes_ptr is not NULL *total_bytes_ptr is set to the total number
+    * of bytes in the IDAT sequence or to PNG_SIZE_MAX if this overflows.
     */
 
 /* CORE WRITE API {#core-write} */

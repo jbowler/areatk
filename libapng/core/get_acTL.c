@@ -22,6 +22,9 @@ bool APNGAPI
 apng_get_acTL(png_const_structp png_ptr, png_infop info_ptr,
    png_uint_32p num_frames_ptr, png_uint_32p num_plays_ptr)
 {
+   if (png_ptr == NULL || info_ptr == NULL)
+      return false;
+
    static const png_byte acTL[] = APNG_acTL_str;
    static const png_byte fcTL[] = APNG_fcTL_str;
    static const png_byte fdAT[] = APNG_fdAT_str;

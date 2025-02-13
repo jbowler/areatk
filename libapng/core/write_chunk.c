@@ -18,31 +18,14 @@ AREATK. If not, see <https://www.gnu.org/licenses/>. */
 #  include "../inc/apng_private.h"
 #endif
 
-APNGPRIVATE int/*index*/
-apng_search(int num, png_unknown_chunkp chunks, int next, unsigned what)
+APNGPRIVATE void
+apng_write_chunk(png_structp png_ptr, png_const_voidp name,
+      png_const_bytep data, png_uint_32 len)
 {
-   if (chunks != NULL && num > 0 && next >= 0) for (; next < num; ++next)
-      switch (APNG_U32_RGB(chunks[next].name))
-      {
-         case APNG_acTL:
-            if (what & APNG_FIND_acTL) return next;
-            continue;
+   png_write_chunk_start(png_ptr, name, len);
 
-         case APNG_fcTL:
-            if (what & APNG_FIND_fcTL) return next;
-            continue;
+   if (len > 0)
+      png_write_chunk_data(png_ptr, data, len);
 
-         case APNG_fdAT:
-            if (what & APNG_FIND_fdAT) return next;
-            continue;
-
-         case APNG_IDAT:
-            if (what & APNG_FIND_IDAT) return next;
-            continue;
-
-         default:
-            continue;
-      }
-
-   return num;
+   png_write_chunk_end(png_ptr);
 }

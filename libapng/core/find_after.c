@@ -22,6 +22,9 @@ png_uint_32 APNGAPI
 apng_find_after(png_const_structp png_ptr, png_infop info_ptr,
    png_uint_32 after, int find_last, unsigned what)
 {
+   if (png_ptr == NULL || info_ptr == NULL)
+      return APNG_SQN_EINVAL;
+
    png_unknown_chunkp chunks = NULL;
    const int num = png_get_unknown_chunks(png_ptr, info_ptr, &chunks);
    png_uint_32 found = APNG_SQN_MISSING;

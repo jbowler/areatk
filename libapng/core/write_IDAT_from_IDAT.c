@@ -19,37 +19,42 @@ AREATK. If not, see <https://www.gnu.org/licenses/>. */
 #endif
 
 bool APNGAPI
-apng_get_fdAT(png_const_structp png_ptr, png_infop info_ptr, png_uint_32 sqn,
-   png_uint_32p data_len_ptr, png_bytep *data_ptr)
+apng_write_IDAT_from_IDAT(png_structp png_ptr, png_infop info_ptr,
+      png_alloc_size_t *total_bytes_ptr)
 {
    if (png_ptr == NULL || info_ptr == NULL)
       return false;
 
    png_unknown_chunkp chunks = NULL;
    const int num = png_get_unknown_chunks(png_ptr, info_ptr, &chunks);
-   int next = 0;
 
-   /* Search for the fdAT with the given sequence number: */
-   for (;; ++next)
+   png_alloc_size_t total_bytes = 0;
+   bool overflow = false;
+
+   /* Find the first IDAT with a size greater than 0: */
+   int i;
+
+   if (chunks != NULL) for (i=0; i<num; ++i)
    {
-      next = apng_search(num, chunks, next, APNG_FIND_fdAT);
+      i = apng_search(num, chunks, i, APNG_FIND_IDAT);
 
-      if (next >= num) return false;
+      if (i >= num) break;
 
-      /* The chunk must be big enough for the sequence number, which is at the
-       * start, and the sequence number must match the request:
-       */
-      if (chunks[next].size >= 4U && /* correct size */
-          APNG_U32_RGB(chunks[next].data) == sqn) /* sequence number */
+      png_uint_32 size = chunks[i].size;
+
+      if (size > 0U)
       {
-         /* The sequence number matched and the size matched, get the data:
-          */
-         if (data_len_ptr != NULL)
-            *data_len_ptr = chunks[next].size - 4U;
+         apng_write_chunk(png_ptr, APNG_IDAT_str, chunks[i].data, size);
 
-         if (data_ptr != NULL)
-            *data_ptr = chunks[next].data + 4U;
-         return true;
+         /* This may overflow, if so just record that it did: */
+         total_bytes += size;
+         if (total_bytes < size) overflow = true;
       }
    }
+
+   if (total_bytes_ptr != NULL)
+      *total_bytes_ptr = overflow ? PNG_SIZE_MAX : total_bytes;
+
+   /* The result indicates if an IDAT was written. */
+   return overflow || total_bytes > 0U;
 }

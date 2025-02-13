@@ -35,7 +35,8 @@ CPPFLAGS=-DAPNGAPI=
 
 CORE_FILES=core/add_fcTL.o core/add_fdAT.o core/find_after.o core/get_acTL.o\
 	core/get_fcTL.o core/get_fdAT.o core/read_enable.o core/search.o\
-	core/set_acTL.o
+	core/set_acTL.o core/write_chunk.o core/write_IDAT_from_IDAT.o\
+	core/write_IDAT_from_fdAT.o
 
 ADVANCED_FILES=
 

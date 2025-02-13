@@ -132,59 +132,7 @@ struct IHDR
    int compression_method, filter_method;
 };
 
-static void
-write_IDAT_chunk(png_structp write_ptr, png_const_bytep data, png_uint_32 len)
-{
-   const png_byte IDAT[] = "IDAT";
-
-   png_write_chunk_start(write_ptr, IDAT, len);
-
-   if (len > 0)
-      png_write_chunk_data(write_ptr, data, len);
-
-   png_write_chunk_end(write_ptr);
-}
-
 static png_uint_32
-write_IDAT_data(png_structp write_ptr, png_const_structp png_ptr,
-      png_infop info_ptr)
-{
-   /* Write the IDAT chunks stored as unknown in info_ptr: */
-   png_unknown_chunkp chunks = NULL;
-   const int num = png_get_unknown_chunks(png_ptr, info_ptr, &chunks);
-   int next = 0;
-   png_uint_32 count = 0;
-
-   for (; next<num; ++next)
-   {
-      if (memcmp("IDAT", chunks[next].name, 4) == 0)
-      {
-         write_IDAT_chunk(write_ptr, chunks[next].data, chunks[next].size);
-         ++count;
-      }
-   }
-
-   return count;
-}
-
-static png_uint_32
-write_fdAT_data(png_structp write_ptr, png_const_structp png_ptr,
-      png_infop info_ptr, png_uint_32 sqn /*frame sqn*/)
-{
-   png_uint_32 num_bytes;
-   png_bytep frame_data;
-   png_uint_32 count = 0;
-
-   while (apng_get_fdAT(png_ptr, info_ptr, ++sqn, &num_bytes, &frame_data))
-   {
-      write_IDAT_chunk(write_ptr, frame_data, num_bytes);
-      ++count;
-   }
-
-   return count;
-}
-
-static bool
 write_output(const char *file_name, png_structp png_ptr,
       png_infop pre_IDAT_info_ptr, png_infop post_IDAT_info_ptr,
       const struct IHDR *IHDR, const struct fcTL *fcTL, long frame_index,
@@ -208,29 +156,32 @@ write_output(const char *file_name, png_structp png_ptr,
     * remove the validity checks) it has limitations when run in a loop to
     * extract all frames.
     */
-   png_text apng_text;
-   apng_text.compression = -1; /* tEXt: No compression */
-   char key[] = "APNG:fcTL";
-   apng_text.key = key;
+   if (frame_index >= 0)
+   {
+      png_text apng_text;
+      apng_text.compression = -1; /* tEXt: No compression */
+      char key[] = "APNG:fcTL";
+      apng_text.key = key;
 
-   char buffer[256];
+      char buffer[256];
 
-   if (frame_index < 0) /* dummy fcTL */
-      apng_text.text_length = snprintf(buffer, sizeof buffer, "[STATIC IMAGE]");
-   else /* valid fcTL */
       apng_text.text_length = snprintf(buffer, sizeof buffer,
-            "fcTL[%ld%s] SEQUENCE=%u DELAY=%gs DISPOSE=%s[%u] BLEND=%s[%u]",
+            "%ld %u %u %u %u fcTL[%ld%s]"
+            " SEQUENCE=%u DELAY=%gs DISPOSE=%s[%u] BLEND=%s[%u]",
+         frame_index, fcTL->delay_num, fcTL->delay_den, fcTL->dispose_op,
+         fcTL->blend_op,
          frame_index,
          fcTL->sqn == APNG_SQN_STATIC_IMAGE ? " [static image]" : "", fcTL->sqn,
          fcTL->delay_num / (fcTL->delay_den == 0 ? 100. : fcTL->delay_den),
          dispose_of(fcTL), fcTL->dispose_op, blend_of(fcTL), fcTL->blend_op);
 
-   apng_text.text = buffer;
-   apng_text.itxt_length = 0;
-   apng_text.lang = NULL;
-   apng_text.lang_key = NULL;
+      apng_text.text = buffer;
+      apng_text.itxt_length = 0;
+      apng_text.lang = NULL;
+      apng_text.lang_key = NULL;
 
-   png_set_text(png_ptr, pre_IDAT_info_ptr, &apng_text, 1);
+      png_set_text(png_ptr, pre_IDAT_info_ptr, &apng_text, 1);
+   }
 
    /* Create a PNG write structure: */
    error_data output_error;
@@ -274,12 +225,16 @@ write_output(const char *file_name, png_structp png_ptr,
    /* Now the IDAT chunks, this is done using something similar to the "frame
     * loop" in test/core_read.c and the "core" documentation:
     */
-   png_uint_32 count;
+   png_uint_32 after;
+   png_alloc_size_t total_bytes = 0U;
    if (from_fdAT)
-      count = write_fdAT_data(write_ptr, png_ptr, post_IDAT_info_ptr,
-            fcTL->sqn);
+      after = apng_write_IDAT_from_fdAT(write_ptr, post_IDAT_info_ptr,
+            fcTL->sqn, &total_bytes);
+   else if (apng_write_IDAT_from_IDAT(write_ptr, pre_IDAT_info_ptr,
+               &total_bytes))
+      after = fcTL->sqn == APNG_SQN_STATIC_IMAGE ? 0U : 1U;
    else
-      count = write_IDAT_data(write_ptr, png_ptr, pre_IDAT_info_ptr);
+      after = APNG_SQN_NO_DATA;
 
    png_write_info(write_ptr, post_IDAT_info_ptr);
 
@@ -299,9 +254,15 @@ write_output(const char *file_name, png_structp png_ptr,
    }
    fclose(output);
 
-   printf("INFO: WROTE '%s' with %u IDAT chunks from %s\n",
-         output_error.file_name, count, from_fdAT ? "fdAT" : "IDAT");
-   return count > 0;
+   if (APNG_SQN_IS_VALID(after))
+      printf("INFO: WROTE '%s' with %zu IDAT data from %s\n",
+         output_error.file_name, total_bytes, from_fdAT ? "fdAT" : "IDAT");
+   else
+      printf("INFO: ERROR '%s' from %s returned 0x%08x\n",
+         output_error.file_name, from_fdAT ? "fdAT" : "IDAT", after);
+
+   if (total_bytes == 0U) after = APNG_SQN_NO_DATA;
+   return after;
 }
 
 int main(int argc, const char * const *argv)
@@ -441,9 +402,9 @@ int main(int argc, const char * const *argv)
    {
       printf("INFO: FOUND static image [%u x %u]\n", IHDR.width, IHDR.height);
 
-      wrote_image = write_output(*argv, png_ptr,
+      wrote_image = APNG_SQN_IS_VALID(write_output(*argv, png_ptr,
             pre_IDAT_info_ptr, post_IDAT_info_ptr, &IHDR, &fcTL, frame_index,
-            false/*!from fdAT; from IDAT*/);
+            false/*!from fdAT; from IDAT*/));
    }
 
    /* (!) **Animation loop** to find all the frames in the animation.
@@ -488,11 +449,9 @@ int main(int argc, const char * const *argv)
          else if (wrote_image)
             png_error(png_ptr, "INTERNAL ERROR");
          else
-         {
-            wrote_image = write_output(*argv, png_ptr,
+            wrote_image=APNG_SQN_IS_VALID(write_output(*argv, png_ptr,
                   pre_IDAT_info_ptr, post_IDAT_info_ptr,
-                  &IHDR, &fcTL, fcTL_index, true/*from fdAT*/);
-         }
+                  &IHDR, &fcTL, fcTL_index, true/*from fdAT*/));
       }
 
       ++fcTL_index;

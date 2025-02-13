@@ -28,6 +28,7 @@ AREATK. If not, see <https://www.gnu.org/licenses/>. */
  *
  * These are used only at build time.
  */
+#define APNG_IDAT APNG_CHUNKNAME(0x49, 0x44, 0x41, 0x54)
 #define APNG_acTL APNG_CHUNKNAME(0x61, 0x63, 0x54, 0x4C)
 #define APNG_fcTL APNG_CHUNKNAME(0x66, 0x63, 0x54, 0x4C)
 #define APNG_fdAT APNG_CHUNKNAME(0x66, 0x64, 0x41, 0x54)
@@ -95,6 +96,8 @@ AREATK. If not, see <https://www.gnu.org/licenses/>. */
    APNG_STORE_U8(rgb, (index)+3U, u32,  0)))
 
 /* INTERNAL FUNCTIONS */
+#define APNG_FIND_IDAT 0x08U /* Only understood by apng_search. */
+
 APNGPRIVATE int apng_search(int num, png_unknown_chunkp chunks, int next,
    unsigned what);
    /* Given a chunk list return the index of the next chunk whose name matches
@@ -103,4 +106,8 @@ APNGPRIVATE int apng_search(int num, png_unknown_chunkp chunks, int next,
     * found.
     */
 
+APNGPRIVATE void apng_write_chunk(png_structp png_ptr, png_const_voidp name,
+   png_const_bytep data, png_uint_32 lengith);
+   /* Write a single chunk with the given length, name and data[length].
+    */
 #endif /* !APNG_PRIVATE_H */

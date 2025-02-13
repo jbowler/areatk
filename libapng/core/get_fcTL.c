@@ -25,6 +25,9 @@ apng_get_fcTL(png_const_structp png_ptr, png_infop info_ptr, png_uint_32 sqn,
    unsigned *delay_num_ptr, unsigned *delay_den_ptr,
    unsigned *dispose_op_ptr, unsigned *blend_op_ptr)
 {
+   if (png_ptr == NULL || info_ptr == NULL)
+      return false;
+
    png_unknown_chunkp chunks = NULL;
    const int num = png_get_unknown_chunks(png_ptr, info_ptr, &chunks);
    int next = 0;
